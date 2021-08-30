@@ -34,6 +34,7 @@ EasyStar.js = function() {
     var iterationsPerCalculation = Number.MAX_VALUE;
     var acceptableTiles;
     var diagonalsEnabled = false;
+    var findNearestEnabled = false;
 
     /**
     * Sets the collision grid that EasyStar uses.
@@ -72,6 +73,13 @@ EasyStar.js = function() {
      */
     this.enableDiagonals = function() {
         diagonalsEnabled = true;
+    }
+
+    /**
+     * Enable finding nearest.
+     */
+    this.enableFindNearest = function() {
+        findNearestEnabled = true;
     }
 
     /**
@@ -271,19 +279,21 @@ EasyStar.js = function() {
             return;
         }
 
-        // End point is not an acceptable tile.
-        var endTile = collisionGrid[endY][endX];
-        var isAcceptable = false;
-        for (var i = 0; i < acceptableTiles.length; i++) {
-            if (endTile === acceptableTiles[i]) {
-                isAcceptable = true;
-                break;
+        if(!findNearestEnabled) {
+            // End point is not an acceptable tile.
+            var endTile = collisionGrid[endY][endX];
+            var isAcceptable = false;
+            for (var i = 0; i < acceptableTiles.length; i++) {
+                if (endTile === acceptableTiles[i]) {
+                    isAcceptable = true;
+                    break;
+                }
             }
-        }
 
-        if (isAcceptable === false) {
-            callbackWrapper(null);
-            return;
+            if (isAcceptable === false) {
+                callbackWrapper(null);
+                return;
+            }
         }
 
         // Create the instance
@@ -363,7 +373,7 @@ EasyStar.js = function() {
             var searchNode = instance.openList.pop();
 
             // Handles the case where we have found the destination
-            if (instance.endX === searchNode.x && instance.endY === searchNode.y) {
+            if (isDestination(instance, searchNode.x, searchNode.y)) {
                 var path = [];
                 path.push({x: searchNode.x, y: searchNode.y});
                 var parent = searchNode.parent;
@@ -383,19 +393,19 @@ EasyStar.js = function() {
 
             if (searchNode.y > 0) {
                 checkAdjacentNode(instance, searchNode,
-                    0, -1, STRAIGHT_COST * getTileCost(searchNode.x, searchNode.y-1));
+                    0, -1, STRAIGHT_COST * getTileCost(searchNode.x, searchNode.y-1), false);
             }
             if (searchNode.x < collisionGrid[0].length-1) {
                 checkAdjacentNode(instance, searchNode,
-                    1, 0, STRAIGHT_COST * getTileCost(searchNode.x+1, searchNode.y));
+                    1, 0, STRAIGHT_COST * getTileCost(searchNode.x+1, searchNode.y), false);
             }
             if (searchNode.y < collisionGrid.length-1) {
                 checkAdjacentNode(instance, searchNode,
-                    0, 1, STRAIGHT_COST * getTileCost(searchNode.x, searchNode.y+1));
+                    0, 1, STRAIGHT_COST * getTileCost(searchNode.x, searchNode.y+1), false);
             }
             if (searchNode.x > 0) {
                 checkAdjacentNode(instance, searchNode,
-                    -1, 0, STRAIGHT_COST * getTileCost(searchNode.x-1, searchNode.y));
+                    -1, 0, STRAIGHT_COST * getTileCost(searchNode.x-1, searchNode.y), false);
             }
             if (diagonalsEnabled) {
                 if (searchNode.x > 0 && searchNode.y > 0) {
@@ -405,7 +415,7 @@ EasyStar.js = function() {
                         isTileWalkable(collisionGrid, acceptableTiles, searchNode.x-1, searchNode.y, searchNode))) {
 
                         checkAdjacentNode(instance, searchNode,
-                            -1, -1, DIAGONAL_COST * getTileCost(searchNode.x-1, searchNode.y-1));
+                            -1, -1, DIAGONAL_COST * getTileCost(searchNode.x-1, searchNode.y-1), 'tl');
                     }
                 }
                 if (searchNode.x < collisionGrid[0].length-1 && searchNode.y < collisionGrid.length-1) {
@@ -415,7 +425,7 @@ EasyStar.js = function() {
                         isTileWalkable(collisionGrid, acceptableTiles, searchNode.x+1, searchNode.y, searchNode))) {
 
                         checkAdjacentNode(instance, searchNode,
-                            1, 1, DIAGONAL_COST * getTileCost(searchNode.x+1, searchNode.y+1));
+                            1, 1, DIAGONAL_COST * getTileCost(searchNode.x+1, searchNode.y+1), 'br');
                     }
                 }
                 if (searchNode.x < collisionGrid[0].length-1 && searchNode.y > 0) {
@@ -425,7 +435,7 @@ EasyStar.js = function() {
                         isTileWalkable(collisionGrid, acceptableTiles, searchNode.x+1, searchNode.y, searchNode))) {
 
                         checkAdjacentNode(instance, searchNode,
-                            1, -1, DIAGONAL_COST * getTileCost(searchNode.x+1, searchNode.y-1));
+                            1, -1, DIAGONAL_COST * getTileCost(searchNode.x+1, searchNode.y-1), 'tr');
                     }
                 }
                 if (searchNode.x > 0 && searchNode.y < collisionGrid.length-1) {
@@ -435,7 +445,7 @@ EasyStar.js = function() {
                         isTileWalkable(collisionGrid, acceptableTiles, searchNode.x-1, searchNode.y, searchNode))) {
 
                         checkAdjacentNode(instance, searchNode,
-                            -1, 1, DIAGONAL_COST * getTileCost(searchNode.x-1, searchNode.y+1));
+                            -1, 1, DIAGONAL_COST * getTileCost(searchNode.x-1, searchNode.y+1), 'bl');
                     }
                 }
             }
@@ -444,13 +454,14 @@ EasyStar.js = function() {
     };
 
     // Private methods follow
-    var checkAdjacentNode = function(instance, searchNode, x, y, cost) {
+    var checkAdjacentNode = function(instance, searchNode, x, y, cost, diagonal) {
         var adjacentCoordinateX = searchNode.x+x;
         var adjacentCoordinateY = searchNode.y+y;
 
         if ((pointsToAvoid[adjacentCoordinateY] === undefined ||
              pointsToAvoid[adjacentCoordinateY][adjacentCoordinateX] === undefined) &&
             isTileWalkable(collisionGrid, acceptableTiles, adjacentCoordinateX, adjacentCoordinateY, searchNode)) {
+            //This is a walkable tile
             var node = coordinateToNode(instance, adjacentCoordinateX,
                 adjacentCoordinateY, searchNode, cost);
 
@@ -462,7 +473,17 @@ EasyStar.js = function() {
                 node.parent = searchNode;
                 instance.openList.updateItem(node);
             }
+
+        } else {
+            //This is not a walkable tile
+            if(!diagonal && findNearestEnabled && isDestination(instance, adjacentCoordinateX, adjacentCoordinateY)) {
+                //It's the last node and it's not walkable but find nearest is set
+                //And so we will update the endX and endY to this position.
+                setNodeAsDestination(instance, searchNode);
+            }
         }
+
+        
     };
 
     // Helpers
@@ -544,6 +565,20 @@ EasyStar.js = function() {
             return (dx + dy);
         }
     };
+
+
+    //Check if this node is the node we're looking for
+    var isDestination = function(instance, x, y) {
+        return (instance.endX === x && instance.endY === y);
+    };
+
+    var setNodeAsDestination = function(instance, searchNode) {
+        instance.endX = searchNode.x;
+        instance.endY = searchNode.y;
+        //Push this node back in so that when it's popped next time it's seen as the end.
+        instance.openList.push(searchNode);
+    }
+
 }
 
 EasyStar.TOP = 'TOP'
