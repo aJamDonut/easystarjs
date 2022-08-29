@@ -254,7 +254,7 @@ if(startX!==endX||startY!==endY){for(
 // End point is not an acceptable tile.
 var endTile=collisionGrid[endY][endX],isAcceptable=!1,i=0;i<acceptableTiles.length;i++)if(endTile===acceptableTiles[i]){isAcceptable=!0;break}if(!1!==isAcceptable){
 // Create the instance
-var instance=new Instance;instance.openList=new Heap((function(nodeA,nodeB){return nodeA.bestGuessDistance()-nodeB.bestGuessDistance()})),instance.isDoneCalculating=!1,instance.nodeHash={},instance.startX=startX,instance.startY=startY,instance.endX=endX,instance.endY=endY,instance.callback=callbackWrapper,instance.openList.push(coordinateToNode(instance,instance.startX,instance.startY,null,1));var instanceId=nextInstanceId++;return instances[instanceId]=instance,"number"==typeof priority?instanceQueue.splice(priority,0,instanceId):instanceQueue.push(instanceId),instanceId}callbackWrapper(null)}else callbackWrapper([])},
+var instance=new Instance;instance.openList=new Heap((function(nodeA,nodeB){return nodeA.bestGuessDistance()-nodeB.bestGuessDistance()})),instance.iterations=0,instance.isDoneCalculating=!1,instance.nodeHash={},instance.startX=startX,instance.startY=startY,instance.endX=endX,instance.endY=endY,instance.callback=callbackWrapper,instance.openList.push(coordinateToNode(instance,instance.startX,instance.startY,null,1));var instanceId=nextInstanceId++;return instances[instanceId]=instance,"number"==typeof priority?instanceQueue.splice(priority,0,instanceId):instanceQueue.push(instanceId),instanceId}callbackWrapper(null)}else callbackWrapper([])},
 /**
      * Cancel a path calculation.
      *
@@ -271,7 +271,9 @@ this.cancelPath=function(instanceId){return instanceId in instances&&(delete ins
     **/
 this.calculate=function(){if(0!==instanceQueue.length&&void 0!==collisionGrid&&void 0!==acceptableTiles)for(iterationsSoFar=0;iterationsSoFar<iterationsPerCalculation;iterationsSoFar++){if(0===instanceQueue.length)return;syncEnabled&&(
 // If this is a sync instance, we want to make sure that it calculates synchronously.
-iterationsSoFar=0);var instanceId=instanceQueue[0],instance=instances[instanceId];if(void 0!==instance)
+iterationsSoFar=0);var instanceId=instanceQueue[0],instance=instances[instanceId];if(instance.iterations>1e4)
+//Big number we found; 1210759 Addition below
+return console.error("[ABE-INFO] Cancelling big iteration"),void this.cancelPath(instanceId);if(instance.iterations++,void 0!==instance)
 // Couldn't find a path.
 if(0!==instance.openList.size()){var searchNode=instance.openList.pop();
 // Handles the case where we have found the destination

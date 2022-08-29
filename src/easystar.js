@@ -292,6 +292,7 @@ EasyStar.js = function() {
         instance.openList = new Heap(function(nodeA, nodeB) {
             return nodeA.bestGuessDistance() - nodeB.bestGuessDistance();
         });
+        instance.iterations = 0;
         instance.isDoneCalculating = false;
         instance.nodeHash = {};
         instance.startX = startX;
@@ -351,6 +352,14 @@ EasyStar.js = function() {
 
             var instanceId = instanceQueue[0];
             var instance = instances[instanceId];
+            if(instance.iterations > 10000) {
+                //Big number we found; 1210759 Addition below
+                console.error("[ABE-INFO] Cancelling big iteration");
+                this.cancelPath(instanceId);
+                return;
+              
+            }
+            instance.iterations++;
             if (typeof instance == 'undefined') {
                 // This instance was cancelled
                 instanceQueue.shift();
