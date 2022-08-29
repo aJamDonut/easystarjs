@@ -236,10 +236,11 @@ this.stopAvoidingAllAdditionalPoints=function(){pointsToAvoid={}},
     * @param {Number} endY The Y position of the ending point.
     * @param {Function} callback A function that is called when your path
     * is found, or no path is found.
+    * @param {Boolean} priority If set to true, adds to front of queue
     * @return {Number} A numeric, non-zero value which identifies the created instance. This value can be passed to cancelPath to cancel the path calculation.
     *
     **/
-this.findPath=function(startX,startY,endX,endY,callback){
+this.findPath=function(startX,startY,endX,endY,callback,priority){
 // Wraps the callback for sync vs async logic
 var callbackWrapper=function(result){syncEnabled?callback(result):setTimeout((function(){callback(result)}))}
 // No acceptable tiles were set;
@@ -253,7 +254,7 @@ if(startX!==endX||startY!==endY){for(
 // End point is not an acceptable tile.
 var endTile=collisionGrid[endY][endX],isAcceptable=!1,i=0;i<acceptableTiles.length;i++)if(endTile===acceptableTiles[i]){isAcceptable=!0;break}if(!1!==isAcceptable){
 // Create the instance
-var instance=new Instance;instance.openList=new Heap((function(nodeA,nodeB){return nodeA.bestGuessDistance()-nodeB.bestGuessDistance()})),instance.isDoneCalculating=!1,instance.nodeHash={},instance.startX=startX,instance.startY=startY,instance.endX=endX,instance.endY=endY,instance.callback=callbackWrapper,instance.openList.push(coordinateToNode(instance,instance.startX,instance.startY,null,1));var instanceId=nextInstanceId++;return instances[instanceId]=instance,instanceQueue.push(instanceId),instanceId}callbackWrapper(null)}else callbackWrapper([])},
+var instance=new Instance;instance.openList=new Heap((function(nodeA,nodeB){return nodeA.bestGuessDistance()-nodeB.bestGuessDistance()})),instance.isDoneCalculating=!1,instance.nodeHash={},instance.startX=startX,instance.startY=startY,instance.endX=endX,instance.endY=endY,instance.callback=callbackWrapper,instance.openList.push(coordinateToNode(instance,instance.startX,instance.startY,null,1));var instanceId=nextInstanceId++;return instances[instanceId]=instance,"number"==typeof priority?instanceQueue.splice(priority,0,instanceId):instanceQueue.push(instanceId),instanceId}callbackWrapper(null)}else callbackWrapper([])},
 /**
      * Cancel a path calculation.
      *

@@ -234,10 +234,11 @@ EasyStar.js = function() {
     * @param {Number} endY The Y position of the ending point.
     * @param {Function} callback A function that is called when your path
     * is found, or no path is found.
+    * @param {Boolean} priority If set to true, adds to front of queue
     * @return {Number} A numeric, non-zero value which identifies the created instance. This value can be passed to cancelPath to cancel the path calculation.
     *
     **/
-    this.findPath = function(startX, startY, endX, endY, callback) {
+    this.findPath = function(startX, startY, endX, endY, callback, priority) {
         // Wraps the callback for sync vs async logic
         var callbackWrapper = function(result) {
             if (syncEnabled) {
@@ -304,7 +305,11 @@ EasyStar.js = function() {
 
         var instanceId = nextInstanceId ++;
         instances[instanceId] = instance;
-        instanceQueue.push(instanceId);
+        if(typeof priority === 'number') {
+            instanceQueue.splice(priority, 0, instanceId);
+        } else {
+            instanceQueue.push(instanceId);
+        }
         return instanceId;
     };
 
